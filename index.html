@@ -35,23 +35,91 @@
       rgba(0,0,0,0.0) 3px
     );
     box-shadow: inset 0 0 140px rgba(0,0,0,0.85);
+    z-index: 5;
   }
 
-  #panel {
+  /* ---------- Navbar ---------- */
+  #navbar {
     position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 560px;
-    max-width: 88vw;
-    padding: 22px 26px 18px 26px;
-    background: rgba(6, 12, 8, 0.72);
+    top: 0; left: 0; right: 0;
+    height: 42px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    background: rgba(6, 12, 8, 0.82);
+    border-bottom: 1px solid rgba(60, 255, 139, 0.35);
+    box-sizing: border-box;
+  }
+
+  #navbar .brand {
+    color: #6faed6;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+  }
+
+  #navbar .brand b { color: #baffd6; }
+
+  #tabs {
+    display: flex;
+    gap: 4px;
+  }
+
+  #tabs button {
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 1px;
+    background: transparent;
+    color: #6c8577;
+    border: 1px solid transparent;
+    padding: 6px 14px;
+    cursor: pointer;
+  }
+
+  #tabs button:hover {
+    color: #a8f5c8;
+  }
+
+  #tabs button.active {
+    color: #baffd6;
+    border: 1px solid rgba(60,255,139,0.4);
+    background: rgba(60,255,139,0.06);
+    text-shadow: 0 0 8px rgba(60,255,139,0.5);
+  }
+
+  /* ---------- Zone de contenu ---------- */
+  #content {
+    position: absolute;
+    top: 42px;
+    left: 0; right: 0; bottom: 0;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .view {
+    display: none;
+  }
+  .view.active {
+    display: block;
+  }
+
+  #panel, #rules {
+    background: rgba(6, 12, 8, 0.76);
     border: 1px solid rgba(60, 255, 139, 0.35);
     box-shadow: 0 0 0 1px rgba(0,0,0,0.4), 0 0 40px rgba(60,255,139,0.06);
     color: #d8ecdf;
   }
 
-  #panel .bar {
+  #panel {
+    width: 560px;
+    max-width: 88vw;
+    padding: 22px 26px 18px 26px;
+  }
+
+  .bar {
     display: flex;
     justify-content: space-between;
     font-size: 11px;
@@ -136,6 +204,154 @@
     color: #4b6656;
     letter-spacing: 0.5px;
   }
+
+  /* ---------- Règlement ---------- */
+  #rules {
+    width: 680px;
+    max-width: 92vw;
+    height: calc(100vh - 92px);
+    max-height: 560px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #rules .head {
+    padding: 16px 24px 12px 24px;
+    border-bottom: 1px solid rgba(60,255,139,0.2);
+  }
+
+  #rules .cmdline {
+    font-size: 11px;
+    color: #5f7a68;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  #rules h2 {
+    margin: 0;
+    font-size: 20px;
+    letter-spacing: 2px;
+    color: #baffd6;
+    text-shadow: 0 0 8px rgba(60,255,139,0.45);
+  }
+
+  #rules .warn {
+    margin: 14px 24px 0 24px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255, 178, 56, 0.45);
+    background: rgba(255, 178, 56, 0.06);
+    color: #ffcf8a;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  #rules .body {
+    padding: 4px 24px 20px 24px;
+    overflow-y: auto;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #cfe3d6;
+  }
+
+  #rules .body::-webkit-scrollbar { width: 8px; }
+  #rules .body::-webkit-scrollbar-track { background: transparent; }
+  #rules .body::-webkit-scrollbar-thumb { background: rgba(60,255,139,0.3); }
+
+  #rules h3 {
+    font-size: 12.5px;
+    letter-spacing: 1.5px;
+    color: #6faed6;
+    margin: 20px 0 8px 0;
+  }
+
+  #rules h3:first-of-type { margin-top: 14px; }
+
+  #rules ol, #rules ul {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+    counter-reset: rulecount;
+  }
+
+  #rules ol li {
+    counter-increment: rulecount;
+    padding: 6px 0 6px 34px;
+    position: relative;
+    border-bottom: 1px dashed rgba(60,255,139,0.12);
+  }
+
+  #rules ol li:before {
+    content: counter(rulecount, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 6px;
+    color: #3f5a4a;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  #rules ul li {
+    padding: 5px 0 5px 22px;
+    position: relative;
+  }
+
+  #rules ul li:before {
+    content: "OK>";
+    position: absolute;
+    left: 0;
+    color: #5cffa0;
+    font-size: 10px;
+    top: 6px;
+  }
+
+  #rules .accept {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(60,255,139,0.2);
+    color: #a8f5c8;
+    font-size: 12px;
+    letter-spacing: 0.3px;
+  }
+
+  /* ---------- Personnalisation globale de la scrollbar ---------- */
+
+  /* 1. Largeur et hauteur de la barre de défilement */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  /* 2. Arrière-plan de la glissière (track) */
+  ::-webkit-scrollbar-track {
+    background: rgba(6, 12, 8, 0.85);
+    border-left: 1px solid rgba(60, 255, 139, 0.15);
+  }
+
+  /* 3. Le curseur / la poignée (thumb) */
+  ::-webkit-scrollbar-thumb {
+    background: rgba(60, 255, 139, 0.35);
+    border: 1px solid rgba(60, 255, 139, 0.5);
+    border-radius: 0px; /* Conserve le style rectangulaire/terminal */
+    box-shadow: inset 0 0 5px rgba(60, 255, 139, 0.2);
+  }
+
+  /* 4. Effet au survol du curseur */
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(60, 255, 139, 0.65);
+    box-shadow: 0 0 8px rgba(60, 255, 139, 0.8);
+  }
+
+  /* 5. Coin de croisement (si défilement vertical + horizontal) */
+  ::-webkit-scrollbar-corner {
+    background: rgba(6, 12, 8, 0.95);
+  }
+
+  /* ---------- Compatibilité Firefox ---------- */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(60, 255, 139, 0.35) rgba(6, 12, 8, 0.85);
+  }
 </style>
 </head>
 <body>
@@ -143,35 +359,115 @@
 <canvas id="scene"></canvas>
 <div id="crt"></div>
 
-<div id="panel">
-  <div class="bar">
-    <span>SDF-NET // MOTD</span>
-    <span id="clockline">--:--:--</span>
+<div id="navbar">
+  <div class="brand">SDF-NET <b>//</b> serveur communautaire</div>
+  <div id="tabs">
+    <button data-tab="accueil" class="active">ACCUEIL</button>
+    <button data-tab="reglement">REGLEMENT</button>
+  </div>
+  <div class="brand" id="clockline">--:--:--</div>
+</div>
+
+<div id="content">
+
+  <div class="view active" id="view-accueil">
+    <div id="panel">
+      <div class="bar">
+        <span>SDF-NET // MOTD</span>
+        <span>v1</span>
+      </div>
+
+      <h1>SERVEUR <span class="dim">//</span> DES SDF</h1>
+      <div class="subtitle">Counter-Strike: Source — communautaire, multimode, sans domicile fixe</div>
+
+      <div id="log"></div>
+
+      <div class="modes">
+        <span>COPS & RUNNERS</span>
+        <span>HEADSHOT ONLY</span>
+        <span>BHOP</span>
+        <span>DEATHRUN</span>
+      </div>
+
+      <div id="connect">
+        &gt; <span class="cmd">connect 89.3.201.42:8090</span>
+      </div>
+
+      <footer>Put your foolish ambition to rest.</footer>
+    </div>
   </div>
 
-  <h1>SERVEUR <span class="dim">//</span> DES SDF</h1>
-  <div class="subtitle">Counter-Strike: Source — communautaire, multimode, sans domicile fixe</div>
+  <div class="view" id="view-reglement">
+    <div id="rules">
+      <div class="head">
+        <div class="cmdline">$ cat /etc/sdf-net/reglement.conf</div>
+        <h2>REGLEMENT DU SERVEUR</h2>
+      </div>
 
-  <div id="log"></div>
+      <div class="warn">
+        Le respect des règles suivantes est obligatoire pour tous les joueurs.
+        Le non-respect de celles-ci pourra entraîner des sanctions allant de
+        l'avertissement au bannissement temporaire ou définitif.
+      </div>
 
-  <div class="modes">
-    <span>COPS & RUNNERS</span>
-    <span>HEADSHOT ONLY</span>
-    <span>BHOP</span>
-    <span>DEATHRUN</span>
-    <span>GUNGAME</span>
+      <div class="body">
+        <h3>REGLES GENERALES</h3>
+        <ol>
+          <li>Les objectifs de la map doivent être joués et respectés.</li>
+          <li>Le camp excessif est interdit, aussi bien côté Terroriste que Contre-Terroriste.</li>
+          <li>Chaque joueur doit participer activement à la partie et contribuer à son bon déroulement.</li>
+          <li>Sur Dust2, les joueurs doivent emprunter les passages Double-Portes côté CT ou les Caisses côté T, afin de favoriser les affrontements et maintenir une partie dynamique.</li>
+          <li>La politesse et le respect envers les autres joueurs sont obligatoires.</li>
+          <li>Les insultes, provocations et comportements toxiques sont interdits.</li>
+          <li>Le chantage, le harcèlement et toute forme d'intimidation sont strictement interdits.</li>
+          <li>Les propos racistes, discriminatoires ou haineux sont strictement interdits.</li>
+          <li>L'utilisation de cheats, scripts interdits, exploits ou tout comportement visant à nuire au serveur est interdite.</li>
+        </ol>
+
+        <h3>ESPRIT DU SERVEUR</h3>
+        <ul>
+          <li>Le plaisir de jeu et la bonne ambiance sont une priorité.</li>
+          <li>Respectez les autres joueurs ainsi que les décisions de l'administration.</li>
+          <li>Le fair-play passe avant la victoire.</li>
+          <li>Tout comportement nuisible à l'expérience de jeu pourra être sanctionné.</li>
+        </ul>
+
+        <div class="accept">
+          En rejoignant ce serveur, vous acceptez ce règlement et vous engagez à le respecter.
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div id="connect">
-    &gt; <span class="cmd">connect 89.3.201.42:8090</span>
-  </div>
-
-  <footer>Put your foolish ambition to rest</footer>
 </div>
 
 <script>
 (function () {
   "use strict";
+
+  // ---------------------------------------------------------------
+  // Onglets : simple show/hide, sans rechargement de page.
+  // Le canvas 3D reste commun aux deux onglets (fond partagé).
+  // Pour ajouter un onglet : un <button data-tab="xxx"> dans #tabs
+  // + un <div class="view" id="view-xxx"> dans #content.
+  // ---------------------------------------------------------------
+  var tabButtons = document.querySelectorAll("#tabs button");
+  for (var t = 0; t < tabButtons.length; t++) {
+    tabButtons[t].addEventListener("click", function (e) {
+      var name = e.currentTarget.getAttribute("data-tab");
+
+      for (var i = 0; i < tabButtons.length; i++) {
+        tabButtons[i].classList.remove("active");
+      }
+      e.currentTarget.classList.add("active");
+
+      var views = document.querySelectorAll(".view");
+      for (var j = 0; j < views.length; j++) {
+        views[j].classList.remove("active");
+      }
+      document.getElementById("view-" + name).classList.add("active");
+    });
+  }
 
   // ---------------------------------------------------------------
   // Petit moteur de rendu filaire, dans l'esprit du moteur maison :
@@ -195,7 +491,6 @@
   window.addEventListener("resize", resize);
   resize();
 
-  // Vecteur simple
   function V(x, y, z) { return { x: x, y: y, z: z }; }
 
   function rotateY(v, a) {
@@ -208,7 +503,6 @@
     return V(v.x, v.y * c - v.z * s, v.y * s + v.z * c);
   }
 
-  // Cube "caisse" en fil de fer, avec une croix interne (façon caisse en carton)
   var cubeVerts = [
     V(-1, -1, -1), V(1, -1, -1), V(1, 1, -1), V(-1, 1, -1),
     V(-1, -1, 1), V(1, -1, 1), V(1, 1, 1), V(-1, 1, 1)
@@ -218,7 +512,6 @@
     [0,1],[1,2],[2,3],[3,0],
     [4,5],[5,6],[6,7],[7,4],
     [0,4],[1,5],[2,6],[3,7],
-    // croix sur la face avant/arrière, comme un fond de caisse
     [0,2],[1,3],[4,6],[5,7]
   ];
 
@@ -243,7 +536,7 @@
       var f = fov / (z + fov);
       projected.push({
         x: CX + p.x * scale * f,
-        y: CY - 40 + p.y * scale * f,
+        y: CY - 20 + p.y * scale * f,
         z: z
       });
     }
@@ -264,7 +557,6 @@
     ctx.shadowBlur = 0;
   }
 
-  // Poussière ambiante (léger effet de profondeur, sans surcharge visuelle)
   var DUST_COUNT = 60;
   var dust = [];
   for (var d = 0; d < DUST_COUNT; d++) {
@@ -294,7 +586,6 @@
   }
 
   function frame(time) {
-    // effacement avec traînée légère -> persistance façon écran phosphore
     ctx.fillStyle = "rgba(4, 8, 5, 0.35)";
     ctx.fillRect(0, 0, W, H);
 
@@ -306,7 +597,7 @@
   requestAnimationFrame(frame);
 
   // ---------------------------------------------------------------
-  // Faux journal de démarrage, tapé au fil de l'eau (habillage terminal)
+  // Faux journal de démarrage, tapé au fil de l'eau (onglet Accueil)
   // ---------------------------------------------------------------
   var lines = [
     "> init_moteur() ................ [<span class=\"ok\">OK</span>]",
@@ -327,11 +618,9 @@
       return;
     }
     var current = lines[lineIndex];
-    // on tape le texte visible sans casser les balises HTML
     var plain = current.replace(/<[^>]+>/g, "");
     if (charIndex <= plain.length) {
-      // affichage progressif simple : on montre la ligne complète avec un délai par ligne
-      logEl.innerHTML = built + current.slice(0, 0) + plain.slice(0, charIndex);
+      logEl.innerHTML = built + plain.slice(0, charIndex);
       charIndex++;
       setTimeout(typeNext, 14);
     } else {
@@ -343,7 +632,7 @@
   }
   setTimeout(typeNext, 400);
 
-  // Horloge simple dans la barre du haut
+  // Horloge dans la navbar
   function tickClock() {
     var now = new Date();
     function pad(n) { return (n < 10 ? "0" : "") + n; }
