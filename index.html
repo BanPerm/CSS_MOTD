@@ -445,39 +445,32 @@
 (function () {
   "use strict";
 
-  // ---------------------------------------------------------------
-  // Onglets : simple show/hide, sans rechargement de page.
-  // Le canvas 3D reste commun aux deux onglets (fond partagé).
-  // Pour ajouter un onglet : un <button data-tab="xxx"> dans #tabs
-  // + un <div class="view" id="view-xxx"> dans #content.
-  // ---------------------------------------------------------------
+  // --------------------------------------------------------------- 
+  // Onglets : simple show/hide, sans rechargement de page. 
+  // --------------------------------------------------------------- 
   var tabButtons = document.querySelectorAll("#tabs button");
+  var views = document.querySelectorAll(".view");
+
   for (var t = 0; t < tabButtons.length; t++) {
     tabButtons[t].addEventListener("click", function (e) {
       var name = e.currentTarget.getAttribute("data-tab");
 
       for (var i = 0; i < tabButtons.length; i++) {
         tabButtons[i].classList.remove("active");
+        views[i].classList.remove("active");
       }
       e.currentTarget.classList.add("active");
-
-      var views = document.querySelectorAll(".view");
-      for (var j = 0; j < views.length; j++) {
-        views[j].classList.remove("active");
-      }
-      document.getElementById("view-" + name).classList.add("active");
+      
+      var targetView = document.getElementById("view-" + name);
+      if (targetView) targetView.classList.add("active");
     });
   }
 
-  // ---------------------------------------------------------------
-  // Petit moteur de rendu filaire, dans l'esprit du moteur maison :
-  // rotation par matrices, projection en perspective, tri peintre.
-  // Volontairement minimal (pas de textures/clipping) pour rester
-  // léger et compatible avec le navigateur embarqué du MOTD.
-  // ---------------------------------------------------------------
-
+  // --------------------------------------------------------------- 
+  // Moteur de rendu filaire 3D optimisé 
+  // --------------------------------------------------------------- 
   var canvas = document.getElementById("scene");
-  var ctx = canvas.getContext("2d");
+  var ctx = canvas.getContext("2d", { alpha: false }); // Désactive l'alpha global pour booster le 2D context
   var W = 0, H = 0, CX = 0, CY = 0;
 
   function resize() {
@@ -485,103 +478,164 @@
     H = window.innerHeight;
     canvas.width = W;
     canvas.height = H;
-    CX = W / 2;
-    CY = H / 2;
+    CX = W * 0.5;
+    CY = H * 0.5;
   }
   window.addEventListener("resize", resize);
   resize();
 
-  function V(x, y, z) { return { x: x, y: y, z: z }; }
+  // Modèle 3D par défaut (cube)
+  var model3D = {
+    v: new Float32Array([
+      -1,-1,-1,  1,-1,-1,  1,1,-1, -1,1,-1,
+      -1,-1, 1,  1,-1, 1,  1,1, 1, -1,1, 1
+    ]),
+    e: [
+      0,1, 1,2, 2,3, 3,0,
+      4,5, 5,6, 6,7, 7,4,
+      0,4, 1,5, 2,6, 3,7
+    ]
+  };
 
-  function rotateY(v, a) {
-    var c = Math.cos(a), s = Math.sin(a);
-    return V(v.x * c + v.z * s, v.y, -v.x * s + v.z * c);
+  // Parseur OBJ optimisé
+  function parseOBJ(text) {
+    var vertices = [];
+    var edgesSet = new Set();
+    var lines = text.split('\n');
+
+    for (var i = 0, l = lines.length; i < l; i++) {
+      var line = lines[i].trim();
+      if (line.charCodeAt(0) === 118 && line.charCodeAt(1) === 32) { // "v "
+        var parts = line.split(/\s+/);
+        vertices.push(parseFloat(parts[1]), parseFloat(parts[2]), parseFloat(parts[3]));
+      } else if (line.charCodeAt(0) === 102 && line.charCodeAt(1) === 32) { // "f "
+        var parts = line.split(/\s+/).slice(1);
+        var indices = [];
+        for (var j = 0, pLen = parts.length; j < pLen; j++) {
+          indices.push(parseInt(parts[j], 10) - 1);
+        }
+        for (var j = 0, indLen = indices.length; j < indLen; j++) {
+          var a = indices[j];
+          var b = indices[(j + 1) % indLen];
+          edgesSet.add(a < b ? (a + "," + b) : (b + "," + a));
+        }
+      }
+    }
+
+    var edges = [];
+    edgesSet.forEach(function(key) {
+      var pts = key.split(',');
+      edges.push(parseInt(pts[0], 10), parseInt(pts[1], 10));
+    });
+
+    return {
+      v: new Float32Array(vertices),
+      e: new Int32Array(edges)
+    };
   }
 
-  function rotateX(v, a) {
-    var c = Math.cos(a), s = Math.sin(a);
-    return V(v.x, v.y * c - v.z * s, v.y * s + v.z * c);
-  }
-
-  var cubeVerts = [
-    V(-1, -1, -1), V(1, -1, -1), V(1, 1, -1), V(-1, 1, -1),
-    V(-1, -1, 1), V(1, -1, 1), V(1, 1, 1), V(-1, 1, 1)
-  ];
-
-  var cubeEdges = [
-    [0,1],[1,2],[2,3],[3,0],
-    [4,5],[5,6],[6,7],[7,4],
-    [0,4],[1,5],[2,6],[3,7],
-    [0,2],[1,3],[4,6],[5,7]
-  ];
+  fetch('awp.obj')
+    .then(function(response) {
+      if (!response.ok) throw new Error("Erreur de chargement");
+      return response.text();
+    })
+    .then(function(data) {
+      model3D = parseOBJ(data);
+    })
+    .catch(function(err) {
+      console.warn("Modèle par défaut utilisé.", err);
+    });
 
   var angleY = 0.4;
   var angleX = 0.25;
 
-  function drawCube(time) {
-    angleY += 0.006;
-    angleX = 0.25 + Math.sin(time * 0.0004) * 0.12;
+  // Tableaux pré-alloués pour éviter la réallocation mémoire par frame
+  var projectedX = new Float32Array(5000);
+  var projectedY = new Float32Array(5000);
 
-    var scale = Math.min(W, H) * 0.16;
-    var dist = 4.2;
+  function drawModel(time) {
+    angleY += 0.005;
+    angleX = 0.25 + Math.sin(time * 0.0004) * 0.10;
+
+    var scale = Math.min(W, H) * 0.0025;
+    var dist = 5.0;
     var fov = 260;
 
-    var projected = [];
-    var i;
-    for (i = 0; i < cubeVerts.length; i++) {
-      var p = cubeVerts[i];
-      p = rotateY(p, angleY);
-      p = rotateX(p, angleX);
-      var z = p.z * scale + dist * scale;
+    var cY = Math.cos(angleY), sY = Math.sin(angleY);
+    var cX = Math.cos(angleX), sX = Math.sin(angleX);
+
+    var v = model3D.v;
+    var vLen = v.length / 3;
+
+    for (var i = 0; i < vLen; i++) {
+      var idx = i * 3;
+      var px = v[idx];
+      var py = v[idx + 1];
+      var pz = v[idx + 2];
+
+      // Rotations Y puis X combinées
+      var rx = px * cY + pz * sY;
+      var rz = -px * sY + pz * cY;
+      var ry = py;
+
+      var finalY = ry * cX - rz * sX;
+      var finalZ = ry * sX + rz * cX;
+
+      var z = finalZ * scale + dist * scale;
       var f = fov / (z + fov);
-      projected.push({
-        x: CX + p.x * scale * f,
-        y: CY - 20 + p.y * scale * f,
-        z: z
-      });
+
+      projectedX[i] = CX + rx * scale * f;
+      projectedY[i] = CY - finalY * scale * f;
     }
 
-    ctx.lineWidth = 1.4;
+    ctx.lineWidth = 1.0;
     ctx.strokeStyle = "rgba(92, 255, 160, 0.85)";
-    ctx.shadowColor = "rgba(60, 255, 139, 0.9)";
-    ctx.shadowBlur = 8;
 
-    for (i = 0; i < cubeEdges.length; i++) {
-      var a = projected[cubeEdges[i][0]];
-      var b = projected[cubeEdges[i][1]];
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
+    // Tracé unique ultra-rapide
+    ctx.beginPath();
+    var e = model3D.e;
+    for (var i = 0, eLen = e.length; i < eLen; i += 2) {
+      var a = e[i];
+      var b = e[i+1];
+      ctx.moveTo(projectedX[a], projectedY[a]);
+      ctx.lineTo(projectedX[b], projectedY[b]);
     }
-    ctx.shadowBlur = 0;
+    ctx.stroke();
   }
 
-  var DUST_COUNT = 60;
-  var dust = [];
+  // --------------------------------------------------------------- 
+  // Particules (Dust) optimisées 
+  // --------------------------------------------------------------- 
+  var DUST_COUNT = 50;
+  var dustX = new Float32Array(DUST_COUNT);
+  var dustY = new Float32Array(DUST_COUNT);
+  var dustZ = new Float32Array(DUST_COUNT);
+
   for (var d = 0; d < DUST_COUNT; d++) {
-    dust.push({
-      x: Math.random() * 2000 - 1000,
-      y: Math.random() * 2000 - 1000,
-      z: Math.random() * 1000 + 1
-    });
+    dustX[d] = Math.random() * 2000 - 1000;
+    dustY[d] = Math.random() * 2000 - 1000;
+    dustZ[d] = Math.random() * 1000 + 1;
   }
 
   function drawDust() {
     var fov = 260;
     ctx.fillStyle = "rgba(120, 200, 160, 0.55)";
-    for (var i = 0; i < dust.length; i++) {
-      var p = dust[i];
-      p.z -= 1.4;
-      if (p.z <= 1) { p.z = 1000; p.x = Math.random() * 2000 - 1000; p.y = Math.random() * 2000 - 1000; }
-      var f = fov / p.z;
-      var sx = CX + p.x * f;
-      var sy = CY + p.y * f;
-      if (sx < 0 || sx > W || sy < 0 || sy > H) continue;
-      var r = Math.max(0.3, 1.6 * f);
-      ctx.beginPath();
-      ctx.arc(sx, sy, r, 0, Math.PI * 2);
-      ctx.fill();
+
+    for (var i = 0; i < DUST_COUNT; i++) {
+      dustZ[i] -= 1.4;
+      if (dustZ[i] <= 1) {
+        dustZ[i] = 1000;
+        dustX[i] = Math.random() * 2000 - 1000;
+        dustY[i] = Math.random() * 2000 - 1000;
+      }
+      var f = fov / dustZ[i];
+      var sx = CX + dustX[i] * f;
+      var sy = CY + dustY[i] * f;
+
+      if (sx >= 0 && sx <= W && sy >= 0 && sy <= H) {
+        var r = (0.3 > 1.6 * f) ? 0.3 : 1.6 * f;
+        ctx.fillRect(sx - r, sy - r, r * 2, r * 2); // fillRect plus rapide que arc()
+      }
     }
   }
 
@@ -590,18 +644,18 @@
     ctx.fillRect(0, 0, W, H);
 
     drawDust();
-    drawCube(time);
+    drawModel(time);
 
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 
-  // ---------------------------------------------------------------
-  // Faux journal de démarrage, tapé au fil de l'eau (onglet Accueil)
-  // ---------------------------------------------------------------
+  // --------------------------------------------------------------- 
+  // Journal de démarrage et Horloge 
+  // --------------------------------------------------------------- 
   var lines = [
     "> init_moteur() ................ [<span class=\"ok\">OK</span>]",
-    "> chargement des maps ........... [<span class=\"ok\">OK</span>]",
+    "> chargement awp.obj ............ [<span class=\"ok\">OK</span>]",
     "> attribution d'un domicile ..... [<span class=\"amber\">ECHEC</span>]",
     "> repli sur <span class=\"path\">nikhil.fr</span> ......... [<span class=\"ok\">OK</span>]",
     "> statut : multimode, gratuit, errant."
@@ -632,18 +686,20 @@
   }
   setTimeout(typeNext, 400);
 
-  // Horloge dans la navbar
+  var clockEl = document.getElementById("clockline");
   function tickClock() {
     var now = new Date();
-    function pad(n) { return (n < 10 ? "0" : "") + n; }
-    document.getElementById("clockline").textContent =
-      pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
+    var h = now.getHours();
+    var m = now.getMinutes();
+    var s = now.getSeconds();
+    clockEl.textContent = (h < 10 ? "0" : "") + h + ":" + 
+                          (m < 10 ? "0" : "") + m + ":" + 
+                          (s < 10 ? "0" : "") + s;
     setTimeout(tickClock, 1000);
   }
   tickClock();
 
 })();
 </script>
-
 </body>
 </html>
